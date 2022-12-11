@@ -2,66 +2,60 @@ package balancer
 
 import (
 	"testing"
+	"time"
 )
 
-func TestNewBalancer(t *testing.T) {
-	_, err := NewBalancer([]string{"one"})
+func TestNext(t *testing.T) {
+	bal := NewBalancer([]string{"one"})
+	_, err := bal.Next()
+	if err != nil {
+		t.Error(err)
+	}
+
+	bal = NewBalancer([]string{})
+	_, err = bal.Next()
 	if err == nil {
-		t.Error("at least 2 addresses were expected")
+		t.Error("next should return an error if more than one address is not being tracked")
 	}
 }
 
-func TestClose(t *testing.T) {
-	bal, _ := NewBalancer([]string{"one", "two", "three", "four", "five"})
+func TestScore(t *testing.T) {
+	bal := NewBalancer([]string{"one"})
 
-	i := bal.smart.close(3)
-	if i != 3 {
-		t.Errorf("index '%d' was not expected", i)
+	bal.Score("two", 2)
+	time.Sleep(time.Second / 60)
+
+	if bal.smart.table[0].address != "two" {
+		t.Errorf("the embedding of the record in the table was expected")
 	}
 }
 
-func TestPush(t *testing.T) {
-	bal, _ := NewBalancer([]string{"one", "two", "three"})
-	ent := entry{"one", 0}
-	bal.smart.push(0, ent)
+func TestEnable(t *testing.T) {
+	bal := NewBalancer([]string{"one"})
 
-	if bal.smart.table[0].weight != 0 {
-		t.Error("the weight of the zero element was expected to be 0")
+	bal.Enable("two")
+	time.Sleep(time.Second / 60)
+
+	if bal.smart.table[0].address != "two" {
+		t.Errorf("expected a null element with address '%s'", "two")
 	}
 
-	bal, _ = NewBalancer([]string{"one", "two", "three"})
-	ent = entry{"one", 4}
-	bal.smart.push(2, ent)
+	if bal.round.addresses[len(bal.round.addresses)-1] != "two" {
+		t.Errorf("expected a last element with address '%s'", "two")
+	}
+}
 
-	if bal.smart.table[2].weight != 4 {
-		t.Error("the weight of the last element was expected to be 4")
+func TestDisable(t *testing.T) {
+	bal := NewBalancer([]string{"one"})
+
+	bal.Disable("one")
+	time.Sleep(time.Second / 60)
+
+	if len(bal.round.addresses) != 0 {
+		t.Errorf("the expected length of the list is '%d'", 0)
 	}
 
-	bal, _ = NewBalancer([]string{"one", "two", "three"})
-	ent = entry{"one", 1}
-	bal.smart.push(1, ent)
-
-	if bal.smart.table[1].weight != 1 {
-		t.Error("the weight of the first element was expected to be 4")
-	}
-
-	bal, _ = NewBalancer([]string{"one", "two", "three", "four"})
-	bal.smart.table[2].weight++
-	bal.smart.table[3].weight++
-	ent = entry{"one", 2}
-	bal.smart.push(1, ent)
-
-	if bal.smart.table[1].weight != 2 {
-		t.Error("the weight of the first element was expected to be 2")
-	}
-
-	bal, _ = NewBalancer([]string{"one", "two", "three", "four"})
-	bal.smart.table[2].weight++
-	bal.smart.table[3].weight++
-	ent = entry{"one", 2}
-	bal.smart.push(2, ent)
-
-	if bal.smart.table[1].weight != 2 {
-		t.Error("the weight of the first element was expected to be 2")
+	if len(bal.smart.table) != 0 {
+		t.Errorf("the expected length of the table is '%d'", 0)
 	}
 }
