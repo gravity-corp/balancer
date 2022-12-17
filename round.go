@@ -29,7 +29,7 @@ func (r *round) add(addr string) {
 	r.mute.Unlock()
 }
 
-// remove synchronously chack and removes an address from the address list
+// remove synchronously check and removes an address from the address list
 func (r *round) remove(addr string) {
 	r.mute.Lock()
 
